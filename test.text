@@ -1,0 +1,430 @@
+cmd notification post -S bigtext -t 'FPS INJECTOR' 'Tag' 'Starting Configuration.'
+echo ""
+echo "█▓▒▒░░░FPS INJECTOR░░░▒▒▓█"
+echo ""
+sleep 0.5
+# Simpan tanggal instalasi
+date '+%Y-%m-%d %H:%M:%S' > /data/local/tmp/touch_tweak_install_date
+
+INSTALL_DATE=$(cat /data/local/tmp/touch_tweak_install_date 2>/dev/null || echo "Unknown")
+
+echo "┌────────────────────────────────────────────┐"
+echo "│         DEVICE AND HARDWARE INFO           │"
+echo "├────────────────────────────────────────────┤"
+echo "│ 📱 Device   : $(getprop ro.product.manufacturer) $(getprop ro.product.model) │"
+echo "│ ⚙️ CPU      : $(getprop ro.board.platform) │"
+echo "│ 🎮 GPU      : $(getprop ro.hardware) │"
+echo "│ 📲 Android  : $(getprop ro.build.version.release) │"
+echo "│ 📅 Install  : $INSTALL_DATE │"
+echo "│ 🔰 Kernel   : $(uname -r) │"
+echo "│ 🔹 Build    : $(getprop ro.build.display.id) │"
+echo "│ 🛑 Root     : $(if [ $(id -u) -eq 0 ]; then echo 'Yes'; else echo 'No'; fi) │"
+echo "│ 🔗 SELinux  : $(getenforce) │"
+echo "└────────────────────────────────────────────┘"
+
+echo ""
+echo "█▓▒▒░░░WELCOME TO LMZTOOLS░░░▒▒▓█"
+echo ""
+sleep 0.5
+
+sleep 1
+
+(
+#Melonggarkan beban Cpu
+cmd jobscheduler monitor-battery off;cmd jobscheduler cache-config-changes off;cmd jobscheduler enable-flex-policy --option idle --option charging
+# FPS & Refresh Rate Tweaks (SurfaceFlinger)
+setprop debug.sf.frame_rate_multiple_threshold 120
+setprop debug.sf.log_expensive_rendering true
+setprop debug.sf.scroll_boost_refreshrate 120
+setprop debug.sf.touch_boost_refreshrate 120
+setprop debug.sf.high_speed_scroll_factor 25
+setprop debug.sf.enable_refresh_rate_restriction_for_app_switch 1
+) > /dev/null 2>&1 &
+
+(
+#Unlock Fps For iQOO
+settings put system gamecube_frame_interpolation_for_sr 1:3::48:144
+#Optimized Fps Biar Gak Drop
+settings put global device_idle_constants inactive_to 9999999
+settings put global app_standby_enabled 0
+setprop debug.sf.enable_gl_backpressure 0
+setprop debug.sf.early_phase_offset_ns 500000
+setprop debug.sf.phase_offset_ns 1000000
+cmd thermalservice override-status 0
+settings put global thermal_engine_disabled 1
+settings put global game_mode 1
+) > /dev/null 2>&1 &
+
+(
+# SurfaceFlinger Optimized
+settings put global show_temperature_warning 0
+cmd power set-fixed-performance-mode-enabled true
+setprop debug.choreographer.skip_frame_propagation true
+setprop debug.choreographer.vsync_alignment 0
+setprop debug.sf.drop_missed_frames 1
+setprop debug.sf.auto_latch_unsignaled 1
+setprop debug.sf.multithreaded_present 1
+setprop debug.sf.use_frame_rate_priority 1
+setprop debug.sf.enable_egl_image_tracker false
+setprop debug.sf.enable_transaction_tracing false
+setprop debug.sf.enable_gpu_security 0
+setprop debug.sf.enable_changezorder_flag true
+# SurfaceFlinger Optimized (Essential)
+setprop debug.sf.drop_missed_frames 1
+setprtdebug.sf.auto_latch_unsignaled 1
+setprop debug.sf.multithreaded_present 1
+debug.sf.use_frame_rate_priority 1
+setprop debug.sf.enable_egl_image_tracker false
+setprop debug.sf.enable_transaction_tracing false
+setprop debug.sf.enable_adpf_cpu_hint true
+# HWUI Optimized
+setprop debug.hwui.render_ahead 1
+setprop debug.hwui.use_hint_manager true
+setprop debug.hwui.disable_draw_defer false
+setprop debug.hwui.skip_empty_damage false
+setprop debug.hwui.skip_eglmanager_telemetry true
+) > /dev/null 2>&1 &
+
+(
+#Game Overlay Service 
+for pkg in $(pm list packages -3 | cut -f2 -d":"); do
+    cmd device_config put game_overlay $pkg target_fps 120
+    cmd device_config put game_overlay $pkg min_fps 60
+    cmd device_config put game_overlay $pkg disable_fps_limit true
+    cmd device_config put game_overlay $pkg remove_fps_limit true
+    cmd device_config put game_overlay $pkg render_delay_ms 0
+    cmd device_config put game_overlay $pkg disable_vsync true
+done
+) > /dev/null 2>&1 &
+
+(
+cmd device_config put game_overlay com.android.systemui target_fps 120
+cmd device_config put game_overlay com.android.systemui min_fps 60
+cmd device_config put game_overlay com.android.systemui disable_fps_limit true
+cmd device_config put game_overlay com.android.systemui remove_fps_limit true
+cmd device_config put game_overlay com.android.systemui render_delay_ms 0
+cmd device_config put game_overlay com.android.systemui disable_vsync true
+) > /dev/null 2>&1 &
+
+(
+#120FPS 7.0
+setprop debug.sf.vsync_reactor_ignore_present_fences true
+setprop debug.sf.vsync_reactor false
+setprop debug.choreographer.vsync false
+settings put global fps_limit 0
+cmd device_config put game_overlay global disable_fps_limit true
+cmd device_config put game_overlay global remove_fps_limit true
+cmd device_config put game_overlay global disable_vsync true
+setprop debug.hwui.disable_fps_limiter true
+setprop persist.sys.gpu.disable_fps_limiter 1
+setprop ro.surface_flinger.refresh_rate 120
+setprop persist.sys.display.refresh_rate 120
+service call SurfaceFlinger 1035 i32 120
+cmd device_config put system display_refresh_rate 120
+cmd device_config put display refresh_rate 120
+settings put global sf_enable_adpf_cpu_hint 1
+settings put global sf_adpf_cpu_hint_window 0
+settings put global thermal_limit_refresh_rate 0
+setprop debug.sf.hw 1
+setprop debug.sf.latch_unsignaled 0
+setprop debug.sf.enable_gl_backpressure 1
+setprop debug.sf.use_phase_offsets_as_durations 1
+) > /dev/null 2>&1 &
+
+
+(
+# Nonaktifkan mode hemat daya
+cmd power set-mode 0
+# Fungsi untuk mendapatkan refresh rate tertinggi dari sistem
+get_max_refresh_rate() {
+    # Ambil semua nilai refresh rate dari dumpsys
+    dumpsys display | grep -Eo '[0-9]+(\.[0-9]+)?Hz' | sed 's/Hz//' | sort -nr | head -n 1
+}
+# Nonaktifkan mode hemat daya agar performa tidak dibatasi
+settings put global low_power 0
+# Tetapkan nilai refresh rate secara fix ke 120
+refresh_rate=120
+# Terapkan pengaturan refresh rate ke seluruh sistem
+cmd device_config put system display_refresh_rate $refresh_rate
+settings put secure user_refresh_rate $refresh_rate
+settings put secure miui_refresh_rate $refresh_rate
+settings put system min_frame_rate $refresh_rate
+settings put system max_frame_rate $refresh_rate
+settings put system tran_refresh_mode $refresh_rate
+settings put system last_tran_refresh_mode_in_refresh_setting $refresh_rate
+settings put global min_fps $refresh_rate
+settings put global max_fps $refresh_rate
+settings put system tran_need_recovery_refresh_mode $refresh_rate
+settings put system display_min_refresh_rate $refresh_rate
+settings put system min_refresh_rate $refresh_rate
+settings put system max_refresh_rate $refresh_rate
+settings put system peak_refresh_rate $refresh_rate
+settings put secure refresh_rate_mode $refresh_rate
+settings put system user_refresh_rate $refresh_rate
+settings put system thermal_limit_refresh_rate $refresh_rate
+settings put system NV_FPSLIMIT $refresh_rate
+settings put system fps.limit.is.now locked
+#Neww##
+cmd display set-match-content-frame-rate-pref 1
+#Pengaturan Fps 3.0
+settings put system power.dfps.level 0 
+settings put system disable_idle_fps true
+settings put system disable_idle_fps.threshold 1
+settings put system fps.idle_control false
+settings put system metadata_dynfps.disabel 1
+settings put system enable_dpps_dynamic_fps 0
+settings put system display.disable_dynamic_fps 1
+settings put system display.disable_metadata_dynamic_fps 1
+settings put system display.low_framerate_limit 120
+settings put system display.defer_fps_frame_count 2
+settings put system display.refresh_rate 120
+settings put system display.large_comp_hint_fps 120
+settings put system display.enable_pref_hint_for_low_fps 1
+settings put system display.enable_optimal_refresh_rate 1
+settings put system display.enable_idle_content_fps_hint 0
+settings put system display.refresh_rate_changeable 0
+settings put system display.disable_mitigated_fps 1
+settings put system display.idle_time 0
+settings put system display.idle_time_inactive 0
+settings put global dfps.enable false
+settings put global smart_dfps.enable false
+settings put global fps.switch.thermal false
+settings put global fps.switch.default false
+settings put global smart_dfps.idle_fps 120
+settings put global display.idle_default_fps 120
+settings put global smart_dfps.app_switch_fps 120
+settings put global display.fod_monitor_default_fps 120
+#For Device Tranmision 
+setprop debug.mediatek_high_frame_rate_multiple_display_mode 0
+setprop debug.mediatek_high_frame_rate_sf_set_big_core_fps_threshold 120
+settings put global tran_refresh_rate_video_detector.support 0
+settings put global tran_default_auto_refresh.support 0
+settings put global tran_default_refresh_mode 120
+settings put global tran_low_battery_60hz_refresh_rate.support 0
+settings put global tran_90hz_refresh_rate.not_support 0
+settings put system surfaceflinger.idle_reduce_framerate_enable false
+settings put system surfaceflinger.idle_reduce_framerate_enable no
+settings put global tran_custom_refresh_rate_config.support 1
+settings put global transsion.frame_override.support 0
+settings put global transsion.tran_refresh_rate.support 0
+) > /dev/null 2>&1 &
+
+(
+#Stable Optimize Fps
+setprop debug.sys.display.fps 120
+setprop debug.sys.display_refresh_rate 120
+setprop debug.sys.display.refresh_rate 120
+setprop debug.sys.game.minfps 120
+setprop debug.sys.game.maxfps 120
+setprop debug.sys.game.minframerate 120
+setprop debug.sys.game.maxframerate 120
+setprop debug.sys.min_refresh_rate 120
+setprop debug.sys.max_refresh_rate 120
+setprop debug.sys.peak_refresh_rate 120
+setprop debug.sys.sf.fps 120
+setprop debug.sys.smartfps 1
+setprop debug.sys.display.min_refresh_rate 120
+setprop debug.sys.vsync_optimization_enable false
+setprop debug.sys.hwui.dyn_vsync 0
+setprop debug.sys.vsync false
+setprop debug.sys.hwui.fps_mode 1
+setprop debug.sys.first.frame.accelerates true
+setprop debug.sys.fps_unlock_allowed 120
+setprop debug.sys.display.max_fps 120
+setprop debug.sys.video.max.fps 120
+setprop debug.sys.surfaceflinger.idle_reduce_framerate_enable false
+) > /dev/null 2>&1 &
+
+(
+#Stable Optimize Fps Device Tranmisi
+setprop sys.display.fps 120
+setprop sys.display_refresh_rate 120
+setprop sys.display.refresh_rate 120
+setprop sys.game.minfps 120
+setprop sys.game.maxfps 120
+setprop sys.game.minframerate 120
+setprop sys.game.maxframerate 120
+setprop sys.min_refresh_rate 120
+setprop sys.max_refresh_rate 120
+setprop sys.peak_refresh_rate 120
+setprop sys.sf.fps 120
+setprop sys.smartfps 1
+setprop sys.display.min_refresh_rate 120
+setprop sys.vsync_optimization_enable false
+setprop sys.hwui.dyn_vsync 0
+setprop sys.vsync false
+setprop sys.hwui.fps_mode 1
+setprop sys.first.frame.accelerates true
+setprop sys.fps_unlock_allowed 120
+setprop sys.display.max_fps 120
+setprop sys.video.max.fps 120
+setprop sys.surfaceflinger.idle_reduce_framerate_enable false
+) > /dev/null 2>&1 &
+
+(
+# Optimize Refresh Rate
+settings put global refresh_rate_mode 1
+settings put global refresh_rate_switching_type 1
+settings put global refresh_rate_force_high 1
+setprop debug.hwui.refresh_rate 120
+setprop debug.sf.perf_mode 1
+settings put global surface_flinger.use_content_detection_for_refresh_rate false
+settings put global media.recorder-max-base-layer-fps 120
+settings put global vendor.fps.switch.default true
+settings put system vendor.disable_idle_fps true
+settings put global vendor.display.default_fps 120
+settings put system vendor.display.idle_default_fps 120
+settings put system vendor.display.enable_optimize_refresh 1
+settings put system vendor.display.video_or_camera_fps.support true
+setprop debug.hwui.refresh_rate 120
+setprop debug.sf.set_idle_timer_ms 500
+setprop debug.sf.latch_unsignaled 1
+setprop debug.sf.high_fps_early_phase_offset_ns 2000000
+setprop debug.sf.high_fps_late_app_phase_offset_ns 500000
+settings put system game_driver_min_frame_rate  120
+settings put system game_driver_max_frame_rate  120
+settings put system game_driver_power_saving_mode 0
+settings put system game_driver_frame_skip_enable 0
+settings put system game_driver_vsync_enable 0
+settings put system game_driver_gpu_mode 1
+settings put system game_driver_gpu_mode 1
+settings put system game_driver_fps_limit 120
+) > /dev/null 2>&1 &
+
+(
+#Fps Injector 
+setprop debug.graphics.game_default_frame_rate 120
+setprop debug.graphics.game_default_frame_rate.disabled false
+setprop persist.sys.gpu_perf_mode 1
+setprop debug.mtk.powerhal.hint.bypass 1
+setprop persist.sys.surfaceflinger.idle_reduce_framerate_enable false
+setprop sys.surfaceflinger.idle_reduce_framerate_enable false
+setprop debug.sf.perf_mode 1
+settings put global refresh.active 1
+setprop debug.hwui.disable_vsync true
+setprop debug.performance.profile 1
+setprop debug.perf.tuning 1
+) > /dev/null 2>&1 &
+(
+#New Tweak Fps Lock
+settings put system user_refresh_rate 120
+settings put system fps_limit 120
+settings put system max_refresh_rate_for_ui 120
+settings put system hwui_refresh_rate 120
+settings put system display_refresh_rate 120
+settings put system max_refresh_rate_for_gaming 120
+#Mengatur margin Fps
+settings put system fstb_target_fps_margin_high_fps 20
+settings put system fstb_target_fps_margin_low_fps 20
+settings put system gcc_fps_margin 10
+#remove Refresh rate
+settings put system tran_low_battery_60hz_refresh_rate.support 0
+# Lock refresh rate to 120 Hz
+settings put system vendor.display.refresh_rate 120
+settings put system user_refresh_rate 1
+settings put system sf.refresh_rate120
+settings put secure user_refresh_rate 1
+settings put secure miui_refresh_rate 120
+settings put system min_frame_rate 120
+settings put system max_frame_rate 120
+settings put system tran_refresh_mode 120
+settings put system last_tran_refresh_mode_in_refresh_setting 120
+settings put global min_fps 120
+settings put global max_fps 120
+settings put system tran_need_recovery_refresh_mode 120
+settings put system display_min_refresh_rate 120
+settings put system min_refresh_rate 120
+settings put system max_refresh_rate 120
+settings put system peak_refresh_rate 120
+settings put secure refresh_rate_mode 120
+settings put system thermal_limit_refresh_rate 120
+settings put system NV_FPSLIMIT 120
+settings put system fps.limit.is.now locked
+) > /dev/null 2>&1 &
+
+echo "120 FPS နဲ့ 90 FPS ကို support လုပ်တဲ့ game တွေအတွက် battery optimization ပိတ်နေပါသည်"
+
+# 120 FPS support game များ
+for app in \
+com.netease.newspike \
+com.miHoYo.GenshinImpact \
+com.garena.game.codm \
+com.riotgames.league.wildrift \
+com.mobile.legends \
+com.tencent.ig \
+com.mobile.legends.hwag \
+com.mobile.legends.mi \
+com.garena.game.df \
+com.tencent.tmgp.sgame \
+com.roblox.client \
+com.epicgames.fortnite \
+com.activision.callofduty.shooter \
+com.pubg.newstate \
+com.pubg.imobile \
+com.pubg.krmobile \
+com.miHoYo.HonkaiStarRail \
+com.mihoyo.zenless \
+com.square_enix.android_googleplay.ffxv \
+com.bandainamcoent.dblegends_ww \
+com.ea.gp.apexlegendsmobilefps
+do
+    dumpsys deviceidle whitelist +$app
+    echo "[✔] $app (120FPS) ကို system က မကန့်သတ်တော့ပါ!"
+done
+
+# 90 FPS support game များ
+for app in \
+com.dts.freefireth \
+com.dts.freefiremax \
+com.garena.game.kgvn \
+com.supercell.brawlstars \
+com.supercell.clashofclans \
+com.supercell.clashroyale \
+com.supercell.boombeach \
+com.nianticlabs.pokemongo \
+com.ea.gp.fifamobile \
+com.ea.gp.nbamobile \
+com.firsttouchgames.dls7 \
+com.konami.pesam \
+com.mobilechess.gp \
+com.innersloth.spacemafia
+do
+    dumpsys deviceidle whitelist +$app
+    echo "[✔] $app (90FPS) ကို system က မကန့်သတ်တော့ပါ!"
+done
+
+echo""
+echo "THERMAL LIMIT FPS ပိတ်ပြီးပါပြီ [✓]"
+echo""
+sleep 0.5
+echo""
+echo "REFRESH RATE ကို အမြင့်ဆုံးထားပြီးပါပြီ [✓]"
+sleep 0.5
+echo""
+echo "THERMAL LIMIT FPS ကို အမြင့်ဆုံးတင်ပြီးပါပြီ [✓]"
+echo""
+sleep 0.5
+echo""
+echo "SETTING အားလုံး ပြီးဆုံးပါပြီ [✓]"
+echo""
+sleep 0.5
+echo""
+echo "‼️ အဆင်ပြေစွာ အသုံးပြုနိုင်ပါပြီ ‼️"
+echo""
+sleep 0.5
+echo""
+echo "DEV LIMIT GAMING GANTENG"
+echo""
+sleep 0.5
+echo""
+echo "REBOOT မလုပ်ပါနှင့်"
+echo""
+sleep 0.5
+echo""
+echo "အသုံးပြုပေးတဲ့အတွက် ကျေးဇူးတင်ပါတယ်"
+echo""
+sleep 0.5
+echo""
+echo "█▓▒▒░░░ MODULE ကို အသုံးပြုပေးတဲ့အတွက် ကျေးဇူးတင်ပါတယ် ░░░▒▒▓█"
+echo""
+cmd notification post -S bigtext -t 'FPS INJECTOR' 'Tag' 'အောင်မြင်စွာ ဖွင့်ထားပါပြီ။'
